@@ -4,6 +4,7 @@ import type { JSONContent } from '@tiptap/vue-3'
 import { assetService, type AssetService } from '@/infrastructure/assets/AssetService'
 import { parseAssetUrl } from '@/models/asset'
 import type { DocumentRecord, DocumentSummary, TiptapDocumentJson } from '@/models/document'
+import type { EditorPluginRegistry } from '@/plugins'
 
 const CODE_FENCE = String.fromCharCode(96).repeat(3)
 
@@ -20,12 +21,20 @@ export interface ExportableDocumentMetadata {
 
 export interface HtmlExportOptions {
   assetService?: AssetService
+  pluginRegistry?: EditorPluginRegistry
+}
+
+export interface DocumentExportOptions {
+  pluginRegistry?: EditorPluginRegistry
 }
 
 export async function exportDocumentToMarkdown(
   content: TiptapDocumentJson,
   metadata: ExportableDocumentMetadata,
+  options: DocumentExportOptions = {},
 ): Promise<string> {
+  const pluginResult = await options.pluginRegistry?.exportDocument(content, 'markdown', metadata)
+  if (pluginResult !== undefined) return pluginResult
   const lines = metadata.includeTitle === false ? [] : ['# ' + (metadata.title || '未命名文档'), '']
   if (metadata.tags?.length) lines.push('标签：' + metadata.tags.join('、'))
   if (metadata.author) lines.push('作者：' + metadata.author)
@@ -41,6 +50,8 @@ export async function exportDocumentToHtml(
   metadata: ExportableDocumentMetadata,
   options: HtmlExportOptions = {},
 ): Promise<string> {
+  const pluginResult = await options.pluginRegistry?.exportDocument(content, 'html', metadata)
+  if (pluginResult !== undefined) return pluginResult
   const body = await nodesToHtml(content.content ?? [], options.assetService ?? assetService)
   const tags = metadata.tags?.length
     ? '<p class="doc-tags">' +

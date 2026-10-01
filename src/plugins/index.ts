@@ -17,4 +17,9 @@ export type {
   EditorPluginOptions,
   EditorPluginRegistry,
   ExtensionFactory,
+  PluginDocumentExportContext,
+  PluginDocumentExporter,
+  PluginDocumentImportContext,
+  PluginDocumentImporter,
+  PluginDocumentImportResult,
 } from './types'

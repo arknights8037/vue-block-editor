@@ -4,6 +4,8 @@ import { Node } from '@tiptap/core'
 import { createEditorPluginRegistry, isPluginEnabled } from './registry'
 import { createEditorExtensions } from '@/editor/createEditorExtensions'
 import { filterSlashCommandItems } from '@/editor/slashCommand'
+import { parseMarkdownDocument } from '@/editor/markdownImport'
+import { exportDocumentToMarkdown } from '@/editor/documentExport'
 
 const demoNode = Node.create({ name: 'demoBlock' })
 const otherNode = Node.create({ name: 'otherBlock' })
@@ -86,5 +88,34 @@ describe('editor plugin registry', () => {
     expect(editorNames).toContain('otherBlock')
     expect(rendererNames).toContain('demoBlock')
     expect(rendererNames).not.toContain('otherBlock')
+  })
+
+  it('routes import and export adapters through capability checks', async () => {
+    const registry = createEditorPluginRegistry([{
+      id: 'format-plugin',
+      version: 1,
+      importers: {
+        markdown: () => ({ title: 'Plugin import', content: { type: 'doc', content: [{ type: 'paragraph' }] }, plainText: 'plugin' }),
+      },
+      exporters: {
+        markdown: () => '# Plugin export\n',
+      },
+    }])
+    expect(parseMarkdownDocument('ordinary markdown', undefined, { pluginRegistry: registry }).title).toBe('Plugin import')
+    await expect(exportDocumentToMarkdown({ type: 'doc', content: [] }, { title: 'ignored' }, { pluginRegistry: registry }))
+      .resolves.toBe('# Plugin export\n')
+
+    const disabledRegistry = createEditorPluginRegistry([{
+      id: 'disabled-format-plugin',
+      version: 1,
+      capabilities: { import: false, export: false },
+      importers: {
+        markdown: () => ({ title: 'should not run', content: { type: 'doc', content: [] }, plainText: '' }),
+      },
+      exporters: { markdown: () => 'should not run' },
+    }])
+    expect(parseMarkdownDocument('# Real heading', undefined, { pluginRegistry: disabledRegistry }).title).toBe('Real heading')
+    await expect(exportDocumentToMarkdown({ type: 'doc', content: [] }, { title: 'Real title' }, { pluginRegistry: disabledRegistry }))
+      .resolves.toContain('# Real title')
   })
 })

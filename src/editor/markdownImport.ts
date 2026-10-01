@@ -4,11 +4,16 @@ import { safeLinkUrl } from './safeLinkUrl'
 import { ensureTopLevelBlockIds } from './blockId'
 import { normalizeTableRows } from './structuredBlocks'
 import type { TiptapDocumentJson } from '@/models/document'
+import type { EditorPluginRegistry } from '@/plugins'
 
 export interface MarkdownImportResult {
   title: string
   content: TiptapDocumentJson
   plainText: string
+}
+
+export interface MarkdownImportOptions {
+  pluginRegistry?: EditorPluginRegistry
 }
 
 interface ListItemDraft {
@@ -22,7 +27,10 @@ const DEFAULT_IMPORTED_TITLE = '导入的 Markdown'
 export function parseMarkdownDocument(
   markdown: string,
   fallbackTitle = DEFAULT_IMPORTED_TITLE,
+  options: MarkdownImportOptions = {},
 ): MarkdownImportResult {
+  const pluginResult = options.pluginRegistry?.importDocument(markdown, 'markdown')
+  if (pluginResult) return pluginResult
   const normalizedMarkdown = markdown.replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n')
   const lines = normalizedMarkdown.split('\n')
   const content: JSONContent[] = []

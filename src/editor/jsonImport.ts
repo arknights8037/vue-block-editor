@@ -3,6 +3,7 @@ import type { JSONContent } from '@tiptap/vue-3'
 import { ensureTopLevelBlockIds } from './blockId'
 import { normalizeEditorContent } from './editorContent'
 import type { TiptapDocumentJson } from '@/models/document'
+import type { EditorPluginRegistry } from '@/plugins'
 
 export interface JsonImportResult {
   title: string
@@ -10,12 +11,19 @@ export interface JsonImportResult {
   plainText: string
 }
 
+export interface JsonImportOptions {
+  pluginRegistry?: EditorPluginRegistry
+}
+
 const DEFAULT_IMPORTED_TITLE = '导入的 JSON'
 
 export function parseNotebookJsonDocument(
   jsonText: string,
   fallbackTitle = DEFAULT_IMPORTED_TITLE,
+  options: JsonImportOptions = {},
 ): JsonImportResult {
+  const pluginResult = options.pluginRegistry?.importDocument(jsonText, 'json')
+  if (pluginResult) return pluginResult
   const parsed: unknown = JSON.parse(jsonText)
   const content = extractDocumentContent(parsed)
   const normalizedContent = ensureTopLevelBlockIds(normalizeEditorContent(content))

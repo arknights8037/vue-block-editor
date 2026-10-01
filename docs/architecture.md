@@ -22,6 +22,13 @@ Shared block command and menu contracts live in `src/plugins/blockContracts.ts`.
 The plugin adapter depends on these contracts rather than the editor command
 registry; the old editor type exports remain as compatibility aliases.
 
+Asset persistence is split into a framework-neutral `AssetService` contract,
+the browser-only `BrowserMemoryAssetService` fallback, and the Vue injection
+adapter. Editor instances can therefore receive different backends without
+changing document or export code. Plugin format adapters are also resolved by
+the registry; Markdown/JSON importers and Markdown/HTML exporters are skipped
+when their plugin capability is disabled.
+
 The pure document implementation lives under `src/document`; the editor path keeps
 compatibility re-exports for existing imports. The package publishes a `core`
 subpath for document normalization, migrations,

@@ -1,5 +1,5 @@
 import type { Node as ProseMirrorNode } from '@tiptap/pm/model'
-import { NodeSelection, Plugin, PluginKey, TextSelection, type EditorState } from '@tiptap/pm/state'
+import { NodeSelection, Plugin, PluginKey, type EditorState } from '@tiptap/pm/state'
 import { Decoration, DecorationSet, type EditorView } from '@tiptap/pm/view'
 import { Extension, type Editor, type JSONContent } from '@tiptap/core'
 import { DragGesture } from '@use-gesture/vanilla'
@@ -7,6 +7,13 @@ import { DragGesture } from '@use-gesture/vanilla'
 import { BLOCK_ID_ATTRIBUTE } from './blockId'
 import { getBlockIndentAttributes, INDENT_ATTRIBUTE, normalizeIndentLevel } from './blockIndent'
 import { closeBlockTransformMenu, showBlockTransformMenu } from './blockControlMenu'
+import {
+  blurEditorCompletely,
+  isBlockControlsFocusMeta,
+  isEditorInteractionTarget,
+  setBlockControlsFocused,
+  type BlockControlsFocusMeta,
+} from './blockControlFocus'
 import { isFeatureHidden } from '@/models/features'
 import { resolveDropInsertPosition } from './blockDropPosition'
 import { getBlockElement, getBlockRangeClientRect, getTopLevelBlockAtPoint } from './blockGeometry'
@@ -55,10 +62,6 @@ const BlockControlsPluginKey = new PluginKey<BlockControlsState>('block-controls
 
 interface BlockControlsState {
   draggingRange: BlockRange | null
-  isFocused: boolean
-}
-
-interface BlockControlsFocusMeta {
   isFocused: boolean
 }
 
@@ -286,7 +289,7 @@ function createBlockControlsView(
   globalThis.addEventListener('resize', scheduleUpdate)
 
   function handleEditorFocusIn(): void {
-    setBlockControlsFocused(view, true)
+    setBlockControlsFocused(view, BlockControlsPluginKey, true)
   }
 
   function handleEditorFocusOut(event: FocusEvent): void {
@@ -299,7 +302,7 @@ function createBlockControlsView(
       return
     }
 
-    setBlockControlsFocused(view, false)
+    setBlockControlsFocused(view, BlockControlsPluginKey, false)
   }
 
   function handleDocumentPointerDown(event: PointerEvent): void {
@@ -312,7 +315,7 @@ function createBlockControlsView(
       return
     }
 
-    blurEditorCompletely(view)
+    blurEditorCompletely(view, BlockControlsPluginKey)
   }
 
   return {
@@ -337,74 +340,6 @@ function createBlockControlsView(
       dropIndicator.remove()
     },
   }
-}
-
-function isBlockControlsFocusMeta(value: unknown): value is BlockControlsFocusMeta {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    'isFocused' in value &&
-    typeof (value as BlockControlsFocusMeta).isFocused === 'boolean'
-  )
-}
-
-function setBlockControlsFocused(view: EditorView, isFocused: boolean): void {
-  const pluginState = BlockControlsPluginKey.getState(view.state)
-  if (pluginState?.isFocused === isFocused) {
-    return
-  }
-
-  view.dispatch(
-    view.state.tr.setMeta(BlockControlsPluginKey, { isFocused }).setMeta('addToHistory', false),
-  )
-}
-
-function isEditorInteractionTarget(view: EditorView, target: Node): boolean {
-  if (view.dom.contains(target)) {
-    return true
-  }
-
-  const element = target instanceof globalThis.Element ? target : (target.parentElement ?? null)
-  if (!element) {
-    return false
-  }
-
-  return Boolean(
-    element.closest(
-      [
-        '.block-control-handle',
-        '.block-transform-menu',
-        '.bubble-menu-layer',
-        '.bubble-color-panel',
-        '.editor-context-menu',
-      ].join(','),
-    ),
-  )
-}
-
-function blurEditorCompletely(view: EditorView): void {
-  let transaction = view.state.tr
-  const { selection } = view.state
-
-  if (!selection.empty || selection instanceof NodeSelection) {
-    const position = Math.max(0, Math.min(selection.to, view.state.doc.content.size))
-    transaction = transaction.setSelection(TextSelection.near(view.state.doc.resolve(position), 1))
-  }
-
-  transaction = transaction
-    .setMeta(BlockControlsPluginKey, { isFocused: false })
-    .setMeta('addToHistory', false)
-
-  if (
-    transaction.docChanged ||
-    transaction.selectionSet ||
-    transaction.getMeta(BlockControlsPluginKey)
-  ) {
-    view.dispatch(transaction)
-  }
-
-  view.dom.blur()
-  globalThis.getSelection()?.removeAllRanges()
 }
 
 function renderBlockHandles(

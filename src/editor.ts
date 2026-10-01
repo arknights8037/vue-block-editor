@@ -13,12 +13,13 @@ export {
   type SlashCommandContext,
   type SlashCommandItem,
 } from './editor/slashCommand'
-export { parseMarkdownDocument } from './editor/markdownImport'
-export { parseNotebookJsonDocument } from './editor/jsonImport'
+export { parseMarkdownDocument, type MarkdownImportOptions } from './editor/markdownImport'
+export { parseNotebookJsonDocument, type JsonImportOptions } from './editor/jsonImport'
 export {
   exportDocumentToHtml,
   exportDocumentToMarkdown,
   type HtmlExportOptions,
+  type DocumentExportOptions,
   metadataFromDocument,
   type ExportableDocumentMetadata,
 } from './editor/documentExport'
@@ -26,6 +27,7 @@ export * from './models/document'
 export * from './models/features'
 export * from './models/asset'
 export {
+  BrowserMemoryAssetService,
   configureAssetService,
   provideAssetService,
   resetAssetService,

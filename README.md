@@ -1,65 +1,18 @@
 # Vue Block Editor
 
-项目文档网站：打开 [`docs/index.html`](./docs/index.html)，或在项目根目录运行
-`python -m http.server 4173 --directory docs` 后访问 `http://127.0.0.1:4173/`。
+一个可复用的 Vue 3 块编辑器组件库，提供 Tiptap 编辑器、只读渲染器、文档树、文档 JSON 核心操作和插件扩展边界。
 
-Reusable Vue 3 block editor, read-only renderer and document tree extracted from myNoteBook.
+[![CI](https://github.com/arknights8037/vue-block-editor/actions/workflows/ci.yml/badge.svg)](https://github.com/arknights8037/vue-block-editor/actions/workflows/ci.yml)
 
-## Included capabilities
+项目仓库：[arknights8037/vue-block-editor](https://github.com/arknights8037/vue-block-editor)
 
-- Paragraphs, four heading levels, block quotes, ordered, bullet and task lists
-- Block selection, drag sorting, indentation, duplication and context menus
-- Bold, italic, underline, strike, subscript, superscript, alignment, text color and highlight
-- Syntax-highlighted code blocks and lazy-loaded Mermaid previews
-- KaTeX formula blocks, collapsible headings and collapsible lists
-- Images, captions and generic attachments through an injectable asset adapter
-- Markdown-compatible fenced `card` blocks with nested block content
-- Native Vue table editing with column titles, row/column operations, keyboard navigation and TSV paste
-- Markdown/JSON import, Markdown/HTML export and stable block IDs
-- Read-only `BlockRenderer` and recursive `DocumentTree`
-
-## Install
+## 快速开始
 
 ```bash
 pnpm add @my-notebook/vue-block-editor
 ```
 
-To install the locally built archive:
-
-```powershell
-pnpm add F:\vue-block-editor\my-notebook-vue-block-editor-0.1.0.tgz
-```
-
-## Use
-
-For document processing in Node.js or a browser without the editor UI, use the
-`core` entry. It includes normalization, migrations, snapshots, search, operations
-and the agent tool adapter. It loads no Vue runtime, components or CSS, and supports
-both ESM `import` and CommonJS `require`.
-
-```ts
-import {
-  createInitialDocumentContent,
-  createDocumentSnapshot,
-  searchDocumentBlocks,
-} from '@my-notebook/vue-block-editor/core'
-
-const snapshot = createDocumentSnapshot('example', 1, createInitialDocumentContent('Hello'))
-const blocks = searchDocumentBlocks(snapshot, 'Hello')
-```
-
-After building, `pnpm check:package` verifies the packed exports and exercises
-both core module formats in an isolated directory.
-
-The read-only and editing surfaces also have independent entry points:
-
-```ts
-import { DocumentRenderer } from '@my-notebook/vue-block-editor/renderer'
-import { BlockEditor, EditorProvider } from '@my-notebook/vue-block-editor/editor'
-```
-
-`pnpm check:consumer` runs the same public entry checks used by the basic consumer
-example under `examples/basic`.
+在 Vue 应用中引入样式和组件：
 
 ```vue
 <script setup lang="ts">
@@ -82,6 +35,133 @@ const content = ref(createEmptyDocumentContent())
   </EditorProvider>
 </template>
 ```
+
+`EditorProvider` 提供弹窗、提示、Tooltip 和资源服务上下文。若应用已有自己的 UI 上下文，可以只使用编辑器组件并关闭内置 provider 注册。
+
+## 包入口
+
+| 入口 | 内容 | 适用场景 |
+| --- | --- | --- |
+| `@my-notebook/vue-block-editor` | 完整兼容入口 | 直接使用全部组件 |
+| `@my-notebook/vue-block-editor/core` | 纯文档 JSON、迁移、快照、搜索和操作 | Node.js、服务端、Agent、无 UI 页面 |
+| `@my-notebook/vue-block-editor/renderer` | 只读渲染器和文档树 | 阅读页、预览页 |
+| `@my-notebook/vue-block-editor/editor` | 编辑器、Provider、插件、导入导出 | 编辑页 |
+| `@my-notebook/vue-block-editor/style.css` | 组件样式 | UI 组件入口配套样式 |
+
+`core`、`renderer` 和 `editor` 均提供 ESM、CommonJS 和 TypeScript 声明。只使用文档处理能力时，不需要加载 Vue 组件或 CSS。
+
+## 文档数据契约
+
+文档以 Tiptap JSON 作为持久化格式：
+
+```ts
+import {
+  DOCUMENT_SCHEMA_VERSION,
+  normalizeEditorContent,
+  serializeEditorContent,
+} from '@my-notebook/vue-block-editor/core'
+
+const document = normalizeEditorContent(input)
+const json = serializeEditorContent(document)
+console.log(document.schemaVersion === DOCUMENT_SCHEMA_VERSION)
+```
+
+应用应在数据进入编辑器或数据库时执行规范化，并保存 `schemaVersion`。Markdown 用于导入导出，不建议作为需要稳定节点 ID 和完整属性的主存储格式。
+
+## 插件
+
+插件可以声明块、Mark、Tiptap 扩展、NodeView 以及格式适配器：
+
+```ts
+import { Node } from '@tiptap/core'
+import {
+  createEditorPluginRegistry,
+  type EditorPlugin,
+} from '@my-notebook/vue-block-editor/editor'
+
+const notePlugin: EditorPlugin = {
+  id: 'notes',
+  version: 1,
+  blocks: [{
+    id: 'note-block',
+    title: 'Note',
+    aliases: ['note'],
+    node: Node.create({ name: 'noteBlock' }),
+    slash: {
+      command: ({ editor, range }) =>
+        editor.chain().deleteRange(range).insertContent({ type: 'noteBlock' }).run(),
+    },
+  }],
+}
+
+const registry = createEditorPluginRegistry([notePlugin])
+```
+
+插件默认参与编辑和只读渲染。可以通过 capability 限制参与面：
+
+```ts
+const rendererOnlyPlugin: EditorPlugin = {
+  id: 'preview-only',
+  version: 1,
+  capabilities: { editor: false },
+}
+```
+
+`importers.markdown`、`importers.json`、`exporters.markdown` 和 `exporters.html` 会分别遵守 `import` / `export` capability。插件注册表会优先调用启用的格式适配器，未处理时再使用内置实现。
+
+## 资源服务
+
+图片和附件通过 `AssetService` 解耦，应用可以注入自己的上传、查找、URL 解析和打开逻辑：
+
+```ts
+const assetService = {
+  storeFile: (file, documentId) => uploadToBackend(file, documentId),
+  findAsset: (id) => findFromBackend(id),
+  resolveAssetUrl: (id) => resolveBackendUrl(id),
+  openAsset: (id) => openBackendAsset(id),
+}
+```
+
+将服务传给 `EditorProvider` 可以实现多编辑器实例隔离；导出函数也支持通过选项传入同一个服务。
+
+## 开发与验证
+
+```bash
+pnpm install
+pnpm typecheck
+pnpm test
+pnpm test:coverage
+pnpm build
+pnpm docs:build
+pnpm check:consumer
+pnpm check:package
+pnpm check:bundle
+```
+
+`examples/basic` 是最小消费者检查，`check:package` 会检查实际 tarball 的出口和 `core` 的 ESM/CommonJS 运行。发布前执行：
+
+```bash
+pnpm publish
+```
+
+`prepublishOnly` 会自动重新构建并执行包检查。
+
+## 架构
+
+```text
+src/document   纯文档 JSON、ID 迁移和模板
+src/core       快照、搜索、版本安全操作
+src/agent      Agent 工具适配器
+src/plugins    插件契约、注册表和格式扩展
+src/editor     Tiptap 编辑器、NodeView 和交互
+src/components 只读渲染器和文档树
+src/ui         Provider 和基础 UI
+```
+
+详细边界见 [`docs/architecture.md`](./docs/architecture.md)。
+
+项目文档网站：打开 [`docs/index.html`](./docs/index.html)，或在项目根目录运行
+`python -m http.server 4173 --directory docs` 后访问 `http://127.0.0.1:4173/`。
 
 For an application that uses several package components, register them once as a Vue plugin:
 

@@ -66,15 +66,38 @@ export function createEditorPluginRegistry(
   }
 
   const blockMap = new Map(blocks.map((block) => [block.id, block]))
-  return {
+  const registryProxy = {} as EditorPluginRegistry
+  const registry: EditorPluginRegistry = {
     plugins: configuredPlugins,
     blocks,
     marks,
     getBlock: (id) => blockMap.get(id),
     getBlockOwner: (id) => blockOwners.get(id),
     getBlockByNodeName: (name) => blocksByNodeName.get(name),
+    importDocument: (source, format) => {
+      for (const plugin of configuredPlugins) {
+        if (!isPluginEnabled(plugin, 'import')) continue
+        const importer = plugin.importers?.[format]
+        if (!importer) continue
+        const result = importer(source, { registry: registryProxy, format })
+        if (result) return result
+      }
+      return undefined
+    },
+    exportDocument: async (content, format, metadata) => {
+      for (const plugin of configuredPlugins) {
+        if (!isPluginEnabled(plugin, 'export')) continue
+        const exporter = plugin.exporters?.[format]
+        if (!exporter) continue
+        const result = await exporter(content, { registry: registryProxy, format, metadata })
+        if (result !== undefined) return result
+      }
+      return undefined
+    },
     hasBlock: (id) => blockMap.has(id),
   }
+  Object.assign(registryProxy, registry)
+  return registry
 }
 
 export function createPluginContext(
