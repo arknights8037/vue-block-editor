@@ -26,6 +26,7 @@ export {
 export * from './models/document'
 export * from './models/features'
 export * from './models/asset'
+export * from './models/settings'
 export {
   BrowserMemoryAssetService,
   configureAssetService,
