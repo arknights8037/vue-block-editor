@@ -1,0 +1,8 @@
+node_modules/
+dist/
+coverage/
+docs-dist/
+*.tgz
+*.log
+vite.config.d.ts
+vite.config.d.ts.map

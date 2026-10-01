@@ -1,0 +1,15 @@
+@import './styles/foundation/tokens.css';
+@import './styles/ui/primitives.css';
+@import './styles/editor/editor-core.css';
+@import './styles/editor/table-blocks.css';
+@import './styles/editor/content-blocks.css';
+@import './styles/editor/menus.css';
+@import './styles/editor/slash-menu.css';
+@import './styles/editor/attachment-block.css';
+@import './styles/components/document-sidebar.css';
+
+.vue-block-editor {
+  min-width: 0;
+  color: var(--color-text-primary);
+  background: var(--color-bg-editor);
+}

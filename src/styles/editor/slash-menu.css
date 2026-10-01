@@ -1,0 +1,74 @@
+.slash-command__query {
+  border-radius: 4px;
+  background: #e8f1fb;
+}
+
+.slash-command-host {
+  z-index: 30;
+}
+
+.slash-command {
+  width: 248px;
+  max-height: min(360px, calc(100vh - 24px));
+  overflow-x: hidden;
+  overflow-y: auto;
+  border: 1px solid #d9d7d0;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 18px 48px rgb(20 26 33 / 18%);
+}
+
+.slash-command__item {
+  display: grid;
+  width: 100%;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  border: 0;
+  color: #2f3846;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.slash-command__item:hover,
+.slash-command__item--selected {
+  background: #e8f1fb;
+}
+
+.slash-command__icon {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 1px solid #e5e2da;
+  border-radius: 7px;
+  color: #374151;
+  background: #f7f7f5;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.slash-command__content {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.slash-command__title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.slash-command__description,
+.slash-command__empty {
+  color: #667085;
+  font-size: 12px;
+}
+
+.slash-command__empty {
+  padding: 12px;
+}
+

@@ -1,0 +1,114 @@
+:root {
+  color: var(--color-text-primary);
+  background: var(--color-bg-app);
+  color-scheme: light;
+  --color-bg-app: #f7f7f5;
+  --color-bg-sidebar: #f3f3f1;
+  --color-bg-editor: #ffffff;
+  --color-bg-surface: #f8f8f7;
+  --color-bg-elevated: #ffffff;
+  --color-bg-hover: #efefed;
+  --color-bg-active: #e8e8e5;
+  --color-bg-selected: #e6edfa;
+  --color-border-subtle: #eeeeeb;
+  --color-border-default: #e2e2de;
+  --color-border-strong: #cacac4;
+  --color-text-primary: #2f2e2a;
+  --color-text-secondary: #5f5d57;
+  --color-text-tertiary: #85827a;
+  --color-text-disabled: #aaa8a1;
+  --color-text-placeholder: #9a9891;
+  --color-text-link: #2767c7;
+  --color-text-on-accent: #ffffff;
+  --color-accent-primary: #3478d4;
+  --color-accent-hover: #2868c1;
+  --color-accent-active: #2058a7;
+  --color-accent-soft: #e6effb;
+  --color-focus-ring: #76a7e7;
+  --color-selection: #ddebfc;
+  --color-editor-block-hover: rgb(47 46 42 / 5%);
+  --color-editor-block-selected: #e6edfa;
+  --color-editor-block-handle: #85827a;
+  --color-editor-indent-guide: #eeeeeb;
+  --color-editor-placeholder: #9a9891;
+  --color-editor-quote-border: #9ba8b7;
+  --color-editor-code-bg: #f2f3f5;
+  --color-editor-inline-code-bg: #f0f0ed;
+  --color-editor-table-header: #f4f4f2;
+  --color-editor-table-border: #deded9;
+  --color-agent-accent: #7c3aed;
+  --color-agent-panel-bg: #ffffff;
+  --color-agent-message-bg: #fbfaff;
+  --color-agent-thinking-bg: #f3eeff;
+  --color-agent-suggestion-bg: #f8f5ff;
+  --color-agent-citation-bg: #eaf5fb;
+  --color-diff-added-bg: #e8f7ee;
+  --color-diff-added-text: #17643b;
+  --color-diff-removed-bg: #fdeceb;
+  --color-diff-removed-text: #a7352b;
+  --color-diff-modified-bg: #fff5d8;
+  --color-diff-modified-text: #7a4d00;
+  --color-status-success: #18865f;
+  --color-status-warning: #b7791f;
+  --color-status-error: #c24135;
+  --color-status-info: #1b64b0;
+  --color-content-gray-bg: #efefed;
+  --color-content-gray-text: #5f5d57;
+  --color-content-gray-border: #e2e2de;
+  --color-content-brown-bg: #efe2d4;
+  --color-content-brown-text: #6b4f3a;
+  --color-content-brown-border: #d7c0aa;
+  --color-content-orange-bg: #f7e0cf;
+  --color-content-orange-text: #8e432c;
+  --color-content-orange-border: #e3b79b;
+  --color-content-yellow-bg: #f6e8bf;
+  --color-content-yellow-text: #705100;
+  --color-content-yellow-border: #e3cd8e;
+  --color-content-green-bg: #e3f0e1;
+  --color-content-green-text: #2f6a3d;
+  --color-content-green-border: #b9d5b9;
+  --color-content-blue-bg: #e3f0f8;
+  --color-content-blue-text: #245f8c;
+  --color-content-blue-border: #b8d5e8;
+  --color-content-purple-bg: #efe8fa;
+  --color-content-purple-text: #6948a3;
+  --color-content-purple-border: #d3c3ed;
+  --color-content-pink-bg: #f6e3ee;
+  --color-content-pink-text: #8c3a66;
+  --color-content-pink-border: #e4bed4;
+  --color-content-red-bg: #f8dfdb;
+  --color-content-red-text: #92372c;
+  --color-content-red-border: #e7b4ad;
+  --accent: var(--color-accent-primary);
+  --accent-hover: var(--color-accent-hover);
+  --accent-soft: var(--color-accent-soft);
+  --accent-ring: rgb(118 167 231 / 32%);
+  --accent-color: var(--color-accent-primary);
+  --z-block-controls: 80;
+  --z-block-drop-indicator: 90;
+  --z-block-dragging: 100;
+  --z-block-transform-menu: 1100;
+  --z-bubble-menu: 1800;
+  --z-bubble-popover: 1850;
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+:root[data-reduce-motion='true'] *,
+:root[data-reduce-motion='true'] *::before,
+:root[data-reduce-motion='true'] *::after {
+  scroll-behavior: auto !important;
+  transition-duration: 0.01ms !important;
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+}

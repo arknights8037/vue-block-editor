@@ -1,0 +1,25 @@
+html, body, #demo-app { min-height: 100%; margin: 0; }
+body { background: #f7f9fb; font-family: Inter, system-ui, 'Microsoft YaHei', sans-serif; color: #24313a; }
+.demo-root { min-height: 100vh; background: #fff; }
+.demo-chrome { display: flex; align-items: center; gap: 9px; height: 48px; padding: 0 16px; border-bottom: 1px solid #edf0f2; font-size: 12px; font-weight: 650; }
+.demo-brand { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 6px; color: #fff; background: #2f8f72; font-weight: 800; }
+.demo-spacer { flex: 1; }
+.demo-chrome button { border: 1px solid #e3e9e6; border-radius: 5px; padding: 4px 9px; color: #4d675c; background: #fff; cursor: pointer; font-size: 11px; }
+.demo-chrome button:hover { color: #2f8f72; border-color: #2f8f72; }
+.demo-editor { height: 375px; overflow: hidden; }
+.demo-editor .editor-shell { height: 100%; }
+.demo-editor .editor-shell__content { width: min(650px, calc(100% - 70px)); padding: 28px 0 48px; }
+.demo-status { padding: 9px 16px; border-top: 1px solid #edf0f2; color: #87938e; font-size: 11px; }
+.demo-renderer { max-width: 640px; min-height: 300px; margin: 0 auto; padding: 32px 24px; }
+.demo-root--tree { min-height: 340px; }
+.demo-tree-layout { display: grid; grid-template-columns: 240px 1fr; min-height: 340px; }
+.demo-tree { padding: 18px 8px; background: #f7f8f7; border-right: 1px solid #edf0f2; }
+.demo-tree-title { padding: 0 11px 14px; color: #334239; font-size: 12px; font-weight: 700; }
+.demo-tree-title span { float: right; color: #95a19a; font-weight: 500; }
+.demo-tree-detail { padding: 58px 34px; }
+.demo-detail-kicker { color: #2f8f72; font-size: 10px; letter-spacing: .15em; font-weight: 800; }
+.demo-tree-detail h2 { margin: 10px 0; font-size: 26px; }
+.demo-tree-detail p, .demo-tree-detail small { color: #83918a; font-size: 12px; }
+.demo-table { padding: 24px; min-height: 265px; }
+.demo-count { color: #8a9891; font-size: 11px; font-weight: 400; }
+@media (max-width: 600px) { .demo-tree-layout { grid-template-columns: 1fr; }.demo-tree-detail { padding: 20px; border-top: 1px solid #edf0f2; }.demo-editor .editor-shell__content { width: calc(100% - 36px); } }

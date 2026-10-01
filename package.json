@@ -1,0 +1,95 @@
+{
+  "name": "@my-notebook/vue-block-editor",
+  "version": "0.1.0",
+  "description": "A reusable Vue 3 block editor, renderer and document tree.",
+  "type": "module",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "main": "./dist/vue-block-editor.umd.cjs",
+  "module": "./dist/vue-block-editor.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/vue-block-editor.js",
+      "require": "./dist/vue-block-editor.umd.cjs"
+    },
+    "./style.css": "./dist/vue-block-editor.css",
+    "./core": {
+      "types": "./dist/core.d.ts",
+      "import": "./dist/core.js",
+      "require": "./dist/core.cjs"
+    }
+  },
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "scripts": {
+    "build": "vue-tsc --noEmit && vite build && vite build --config vite.core.config.ts",
+    "docs:sync": "node scripts/enrich-docs.mjs",
+    "docs:dev": "pnpm docs:sync && vite --config docs/vite.config.ts",
+    "docs:build": "pnpm docs:sync && vue-tsc --noEmit --project docs/tsconfig.json && vite build --config docs/vite.config.ts",
+    "docs:preview": "vite preview --config docs/vite.config.ts",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "vue-tsc --noEmit",
+    "check:bundle": "node scripts/check-bundle-size.mjs",
+    "check:package": "node scripts/check-package.mjs",
+    "bench:document": "pnpm build && node scripts/benchmark-document.mjs",
+    "pack:check": "npm pack --dry-run",
+    "prepublishOnly": "pnpm build && pnpm check:package"
+  },
+  "peerDependencies": {
+    "vue": "^3.5.0"
+  },
+  "dependencies": {
+    "@lucide/vue": "1.21.0",
+    "@tiptap/core": "3.27.3",
+    "@tiptap/extension-blockquote": "3.27.3",
+    "@tiptap/extension-code-block": "3.27.3",
+    "@tiptap/extension-code-block-lowlight": "3.27.3",
+    "@tiptap/extension-color": "3.27.3",
+    "@tiptap/extension-heading": "3.27.3",
+    "@tiptap/extension-highlight": "3.27.3",
+    "@tiptap/extension-horizontal-rule": "3.27.3",
+    "@tiptap/extension-list": "3.27.3",
+    "@tiptap/extension-paragraph": "3.27.3",
+    "@tiptap/extension-placeholder": "3.27.3",
+    "@tiptap/extension-task-item": "3.27.3",
+    "@tiptap/extension-task-list": "3.27.3",
+    "@tiptap/extension-text-align": "3.27.3",
+    "@tiptap/extension-text-style": "3.27.3",
+    "@tiptap/extension-unique-id": "3.27.3",
+    "@tiptap/pm": "3.27.3",
+    "@tiptap/starter-kit": "3.27.3",
+    "@tiptap/suggestion": "3.27.3",
+    "@tiptap/vue-3": "3.27.3",
+    "@use-gesture/vanilla": "^10.3.1",
+    "katex": "^0.17.0",
+    "lowlight": "^3.3.0",
+    "mermaid": "^11.16.0",
+    "reka-ui": "^2.10.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "@vitejs/plugin-vue": "^6.0.7",
+    "@vitest/coverage-v8": "4.1.10",
+    "@vue/test-utils": "^2.4.6",
+    "@vue/tsconfig": "^0.9.1",
+    "jsdom": "^27.2.0",
+    "typescript": "^6.0.3",
+    "vite": "^7.2.7",
+    "vite-plugin-dts": "^4.5.4",
+    "vitest": "^4.1.9",
+    "vue": "3.5.38",
+    "vue-tsc": "^3.1.6"
+  },
+  "engines": {
+    "node": ">=22.12.0",
+    "pnpm": ">=10.0.0"
+  },
+  "license": "MIT"
+}

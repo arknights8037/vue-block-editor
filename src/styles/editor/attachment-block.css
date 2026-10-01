@@ -1,0 +1,85 @@
+.attachment-block {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid rgba(120, 105, 78, 0.22);
+  border-radius: 14px;
+  background: #fffaf0;
+}
+
+.attachment-block--selected {
+  outline: 2px solid var(--accent-color, #3975b7);
+}
+
+.attachment-block__icon {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: rgba(151, 118, 55, 0.12);
+}
+
+.attachment-block__body {
+  min-width: 0;
+  flex: 1;
+}
+
+.attachment-block__body strong,
+.attachment-block__body span,
+.attachment-block__body p {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attachment-block__body span,
+.attachment-block__body p {
+  color: #7b7366;
+  font-size: 13px;
+}
+
+.attachment-block__action {
+  border: 0;
+  border-radius: 999px;
+  padding: 7px 12px;
+  background: var(--accent-color, #3975b7);
+  color: white;
+  cursor: pointer;
+}
+
+.attachment-block__file-input {
+  display: none;
+}
+
+.share-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.share-preview {
+  width: min(920px, 80vw);
+  height: min(680px, 70vh);
+  border: 1px solid rgba(120, 105, 78, 0.22);
+  border-radius: 14px;
+  background: white;
+}
+
+.document-properties__row--field {
+  align-items: flex-start;
+}
+
+.document-properties__textarea {
+  width: 100%;
+  resize: vertical;
+  border: 1px solid rgba(120, 105, 78, 0.22);
+  border-radius: 10px;
+  padding: 9px 11px;
+  background: #fff;
+  color: inherit;
+  font: inherit;
+}
