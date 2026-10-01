@@ -30,6 +30,11 @@ as ESM and CommonJS without runtime dependencies or CSS. The build rejects UI
 modules and external runtime imports in this entry. `pnpm check:package` checks
 the actual archive and executes both formats outside the repository dependencies.
 
+The package also exposes `renderer` and `editor` subpaths. The former contains
+readonly rendering and document-tree components; the latter contains Tiptap
+editing, editor providers and import/export adapters. Both have ESM and CommonJS
+artifacts, while the root entry remains compatible with existing consumers.
+
 Mermaid and KaTeX are loaded lazily from their node views. This keeps initial interaction code smaller, but the UI build still emits one CSS file and a large UMD fallback. Separate `renderer` and `enhanced-blocks` entries remain future work without changing the document contract.
 
 For performance checks, run `pnpm build` followed by `pnpm bench:document`. The benchmark exercises normalization, snapshot creation, search and a revision-safe update against a configurable number of blocks.

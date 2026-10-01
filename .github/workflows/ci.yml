@@ -24,3 +24,4 @@ jobs:
       - run: pnpm check:bundle
       - run: pnpm pack:check
       - run: pnpm check:package
+      - run: pnpm check:consumer

@@ -51,6 +51,16 @@ const blocks = searchDocumentBlocks(snapshot, 'Hello')
 After building, `pnpm check:package` verifies the packed exports and exercises
 both core module formats in an isolated directory.
 
+The read-only and editing surfaces also have independent entry points:
+
+```ts
+import { DocumentRenderer } from '@my-notebook/vue-block-editor/renderer'
+import { BlockEditor, EditorProvider } from '@my-notebook/vue-block-editor/editor'
+```
+
+`pnpm check:consumer` runs the same public entry checks used by the basic consumer
+example under `examples/basic`.
+
 ```vue
 <script setup lang="ts">
 import { ref } from 'vue'

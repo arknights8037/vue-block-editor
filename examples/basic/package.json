@@ -1,0 +1,8 @@
+{
+  "name": "vue-block-editor-basic-consumer",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "verify": "node verify.mjs"
+  }
+}
