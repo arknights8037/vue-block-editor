@@ -30,7 +30,6 @@ import {
   ContextMenuSub,
   ContextMenuSubContent,
   ContextMenuSubTrigger,
-  ContextMenuTrigger,
 } from 'reka-ui'
 import { computed, onBeforeUnmount, ref } from 'vue'
 
@@ -542,7 +541,6 @@ defineExpose({
 <template>
   <EditorContextMenu>
     <template #trigger>
-      <ContextMenuTrigger as-child>
       <div
         ref="editorShellElement"
         class="editor-shell"
@@ -651,7 +649,6 @@ defineExpose({
         </nav>
         <EditorContent :editor="editor" />
       </div>
-      </ContextMenuTrigger>
     </template>
 
     <template #content>
