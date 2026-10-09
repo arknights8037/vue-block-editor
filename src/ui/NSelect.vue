@@ -38,6 +38,9 @@ const emit = defineEmits<{
 }>()
 
 const attrs = useAttrs()
+const selectAttrs = computed(() =>
+  Object.fromEntries(Object.entries(attrs).filter(([key]) => key !== 'class' && key !== 'style')),
+)
 const selectedLabel = computed(
   () => props.options.find((option) => option.value === props.value)?.label ?? props.value,
 )
@@ -50,6 +53,7 @@ function handleValue(value: unknown): void {
 <template>
   <SelectRoot :model-value="value" @update:model-value="handleValue">
     <SelectTrigger
+      v-bind="selectAttrs"
       class="ui-select"
       :class="[attrs.class, `ui-select--${size}`]"
       :style="attrs.style"

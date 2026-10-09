@@ -1,4 +1,5 @@
 import { flushPromises, mount } from '@vue/test-utils'
+import { nextTick } from 'vue'
 import { describe, expect, it, vi } from 'vitest'
 import { Node } from '@tiptap/core'
 
@@ -16,6 +17,34 @@ const content: TiptapDocumentJson = {
 }
 
 describe('EditorShell public contract', () => {
+  it('rewrites a block from the context AI editor and keeps the editor contract', async () => {
+    const blockEdit = vi.fn(async () => 'AI 改写后的段落')
+    const wrapper = mount(EditorShell, { props: { modelValue: content, ai: { blockEdit } } })
+    await flushPromises()
+
+    const api = wrapper.vm as unknown as {
+      setContextBlockPosition: (position: number) => void
+      openBlockAiEditor: () => void
+    }
+    api.setContextBlockPosition(0)
+    api.openBlockAiEditor()
+    await nextTick()
+
+    const input = wrapper.find('.editor-block-ai__input')
+    expect(input.exists()).toBe(true)
+    await input.setValue('改得更简洁')
+    await input.trigger('keydown.enter')
+    await flushPromises()
+
+    expect(blockEdit).toHaveBeenCalledWith(expect.objectContaining({ instruction: '改得更简洁' }))
+    expect(wrapper.find('.editor-block-ai__preview').exists()).toBe(true)
+    expect((wrapper.vm as unknown as { getText: () => string }).getText()).not.toContain('AI 改写后的段落')
+    await wrapper.find('.editor-block-ai__accept').trigger('click')
+    await flushPromises()
+    expect(wrapper.text()).toContain('AI 改写后的段落')
+    wrapper.unmount()
+  })
+
   it('runs a custom plugin block through the editable editor contract', async () => {
     const wrapper = mount(EditorShell, {
       props: {

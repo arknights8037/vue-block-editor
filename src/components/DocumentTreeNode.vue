@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ChevronDown, ChevronRight, FileText } from '@lucide/vue'
+import { ChevronDown, ChevronRight, FileText, Folder } from '@lucide/vue'
 
 import DocumentTreeContextMenu from './DocumentTreeContextMenu.vue'
 import type { SidebarDocumentNode } from './documentTree'
@@ -18,9 +18,10 @@ const props = withDefaults(
     collapsedDocumentIds: Set<DocumentId>
     draggedArticleId: DocumentId | null
     busy: boolean
+    readonly?: boolean
     depth?: number
   }>(),
-  { depth: 0 },
+  { depth: 0, readonly: false },
 )
 
 const emit = defineEmits<{
@@ -56,6 +57,7 @@ function emitDocumentEvent(type: 'properties' | 'rename' | 'delete'): void {
 
 <template>
   <DocumentTreeContextMenu
+    :readonly="readonly"
     :document="node.document"
     @create-child="emit('createChild', node.document.id)"
     @properties="emitDocumentEvent('properties')"
@@ -70,7 +72,7 @@ function emitDocumentEvent(type: 'properties' | 'rename' | 'delete'): void {
           'document-list__item--dragging': node.document.id === draggedArticleId,
         }"
         :style="{ '--document-tree-depth': depth }"
-        draggable="true"
+        :draggable="!readonly"
         @dragstart="emit('dragStart', { event: $event, document: node.document })"
         @dragend="emit('dragEnd')"
       >
@@ -92,7 +94,8 @@ function emitDocumentEvent(type: 'properties' | 'rename' | 'delete'): void {
           :disabled="busy"
           @click="emit('select', node.document.id)"
         >
-          <FileText :size="16" />
+          <Folder v-if="node.document.documentKind === 'group'" :size="16" />
+          <FileText v-else :size="16" />
           <span class="document-list__main">
             <NTooltip trigger="hover">
               <template #trigger>
@@ -106,7 +109,7 @@ function emitDocumentEvent(type: 'properties' | 'rename' | 'delete'): void {
           </span>
         </button>
 
-        <span class="document-list__actions document-list__actions--menu">
+        <span v-if="!readonly" class="document-list__actions document-list__actions--menu">
           <DocumentTreeNodeActions
             :document="node.document"
             :busy="busy"
@@ -129,6 +132,7 @@ function emitDocumentEvent(type: 'properties' | 'rename' | 'delete'): void {
       :collapsed-document-ids="collapsedDocumentIds"
       :dragged-article-id="draggedArticleId"
       :busy="busy"
+      :readonly="readonly"
       :depth="depth + 1"
       @select="emit('select', $event)"
       @toggle="emit('toggle', $event)"

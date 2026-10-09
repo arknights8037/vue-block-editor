@@ -34,6 +34,15 @@ try {
     const snapshot = api.createDocumentSnapshot('test', 1, content)
     assert.equal(snapshot.schemaVersion, api.DOCUMENT_SCHEMA_VERSION)
     assert.ok(api.searchDocumentBlocks(snapshot, 'Packed').length > 0)
+    assert.equal(typeof api.createAgentToolAdapter, 'function')
+    assert.equal(api.createAgentToolDefinitions().length, 5)
+    const adapter = api.createAgentToolAdapter({
+      getDocument: () => ({ revision: 1, content }),
+    })
+    const invoked = api.invokeAgentTool(adapter, 'search', {
+      documentId: 'test', revision: 1, query: 'Packed',
+    })
+    assert.equal(invoked.length, 1)
     const serialized = api.serializeEditorContent(content)
     assert.deepEqual(api.parseEditorContentJson(serialized), content)
     const result = api.applyCoreOperations(snapshot, [{

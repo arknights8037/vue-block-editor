@@ -13,6 +13,7 @@ import {
   Link,
   Palette,
   Redo2,
+  Sparkles,
   Strikethrough,
   Subscript,
   Superscript,
@@ -31,7 +32,7 @@ import {
   ContextMenuSubContent,
   ContextMenuSubTrigger,
 } from 'reka-ui'
-import { computed, onBeforeUnmount, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 
 import { createEditorExtensions } from './createEditorExtensions'
 import {
@@ -62,6 +63,10 @@ import EditorContextMenu from './EditorContextMenu.vue'
 import EditorInlineMarkButtons from './menus/EditorInlineMarkButtons.vue'
 import EditorAlignmentButtons from './menus/EditorAlignmentButtons.vue'
 import EditorHistoryButtons from './menus/EditorHistoryButtons.vue'
+import EditorBlockAiEditor from './EditorBlockAiEditor.vue'
+import EditorFloatingAi from './EditorFloatingAi.vue'
+import type { EditorAiOptions } from './aiTypes'
+import { runMicroAgent, type MicroMessage } from '@/agent/microRuntime'
 import { useEditorFormattingCommands } from './composables/useEditorFormattingCommands'
 import { useEditorBubbleMenu } from './composables/useEditorBubbleMenu'
 import { createInternalDocumentHref, parseInternalDocumentHref } from '@/models/documentLink'
@@ -89,6 +94,7 @@ const props = withDefaults(
     features?: EditorFeatureOptions
     plugins?: readonly EditorPlugin[]
     pluginRegistry?: EditorPluginRegistry
+    ai?: EditorAiOptions
   }>(),
   {
     modelValue: undefined,
@@ -101,6 +107,7 @@ const props = withDefaults(
     features: () => ({}),
     plugins: () => [],
     pluginRegistry: undefined,
+    ai: undefined,
   },
 )
 
@@ -138,6 +145,18 @@ const pendingImagePosition = ref<number | null>(null)
 const pendingAttachmentPosition = ref<number | null>(null)
 const editorShellElement = ref<InstanceType<typeof globalThis.HTMLElement> | null>(null)
 const contextBlockPosition = ref<number | null>(null)
+const blockAiOpen = ref(false)
+const blockAiLoading = ref(false)
+const blockAiError = ref('')
+const blockAiPreview = ref('')
+const blockAiPosition = ref({ top: 0, left: 0 })
+const blockAiController = ref<AbortController | null>(null)
+const floatingAiOpen = ref(false)
+const floatingAiLoading = ref(false)
+const floatingAiError = ref('')
+const floatingAiResponse = ref('')
+const floatingAiEvents = ref<string[]>([])
+const floatingAiController = ref<AbortController | null>(null)
 const retainedBlockAvailable = ref(hasRetainedBlock())
 const editorRevision = ref(0)
 const editorAppearanceStyle = computed(() => ({
@@ -282,6 +301,162 @@ function captureContextBlock(event: InstanceType<typeof globalThis.MouseEvent>):
   const position = Number(block?.dataset.editorBlockPos)
   contextBlockPosition.value = Number.isFinite(position) ? position : null
 }
+
+function getContextBlockSnapshot(): EditorBlockSnapshot | null {
+  const position = contextBlockPosition.value
+  if (position === null) return null
+  return blockSelection.getCurrentDocumentBlocks().find((block) => block.from === position) ?? null
+}
+
+async function updateBlockAiPosition(): Promise<void> {
+  await nextTick()
+  const shell = editorShellElement.value
+  const position = contextBlockPosition.value
+  if (!shell || position === null || !blockAiOpen.value) return
+  const block = shell.querySelector<HTMLElement>(`[data-editor-block-pos="${position}"]`)
+  if (!block) return
+  const shellRect = shell.getBoundingClientRect()
+  const blockRect = block.getBoundingClientRect()
+  blockAiPosition.value = {
+    top: Math.max(8, blockRect.top - shellRect.top + shell.scrollTop - 58),
+    left: Math.max(8, blockRect.left - shellRect.left + shell.scrollLeft + 4),
+  }
+}
+
+function openBlockAiEditor(): void {
+  if (props.readonly || !getContextBlockSnapshot()) return
+  blockAiError.value = ''
+  blockAiPreview.value = ''
+  blockAiOpen.value = true
+  void updateBlockAiPosition()
+}
+
+function closeBlockAiEditor(): void {
+  blockAiController.value?.abort()
+  blockAiController.value = null
+  blockAiOpen.value = false
+  blockAiLoading.value = false
+  blockAiError.value = ''
+  blockAiPreview.value = ''
+}
+
+async function submitBlockAi(instruction: string): Promise<void> {
+  const activeEditor = editor.value
+  const block = getContextBlockSnapshot()
+  if (!activeEditor || !block || props.readonly || blockAiLoading.value) return
+  const controller = new AbortController()
+  blockAiController.value = controller
+  blockAiLoading.value = true
+  blockAiError.value = ''
+  try {
+    let markdown = ''
+    if (props.ai?.blockEdit) {
+      markdown = await props.ai.blockEdit({ instruction, block, document: activeEditor.getJSON() as TiptapDocumentJson, signal: controller.signal })
+    } else if (props.ai?.complete) {
+      const messages: MicroMessage[] = [
+        { role: 'system', content: '你是块内编辑助手。只返回替换目标块的 Markdown 正文，不要解释，不要添加代码围栏。保留用户没有要求改变的事实与格式。' },
+        { role: 'user', content: `目标块原文：\n${block.text}\n\n编辑要求：${instruction}` },
+      ]
+      const reply = await props.ai.complete(messages, controller.signal)
+      markdown = reply.content?.trim() ?? ''
+    } else {
+      throw new Error('请在 BlockEditor 的 ai.complete 或 ai.blockEdit 中配置模型。')
+    }
+    controller.signal.throwIfAborted()
+    if (!markdown.trim()) throw new Error('AI 没有返回可写入的内容。')
+    blockAiPreview.value = markdown
+  } catch (error) {
+    if (!controller.signal.aborted) blockAiError.value = error instanceof Error ? error.message : '块内 AI 编辑失败。'
+  } finally {
+    if (blockAiController.value === controller) {
+      blockAiController.value = null
+      blockAiLoading.value = false
+    }
+  }
+}
+
+function acceptBlockAi(): void {
+  const block = getContextBlockSnapshot()
+  const markdown = blockAiPreview.value
+  if (!block || !markdown) return
+  if (!blockSelection.replaceBlocksWithMarkdown([block.id], markdown)) {
+    blockAiError.value = '目标块已变化，请重新打开块内 AI 编辑。'
+    return
+  }
+  closeBlockAiEditor()
+}
+
+function rejectBlockAi(): void {
+  blockAiPreview.value = ''
+  blockAiError.value = ''
+}
+
+function openFloatingAi(): void {
+  floatingAiOpen.value = true
+  floatingAiError.value = ''
+}
+
+function closeFloatingAi(): void {
+  floatingAiController.value?.abort()
+  floatingAiController.value = null
+  floatingAiLoading.value = false
+  floatingAiOpen.value = false
+}
+
+async function submitFloatingAi(instruction: string): Promise<void> {
+  const activeEditor = editor.value
+  if (!activeEditor || props.readonly || floatingAiLoading.value) return
+  if (!props.ai?.complete) {
+    floatingAiError.value = '请在 BlockEditor 的 ai.complete 中配置模型。'
+    return
+  }
+  const controller = new AbortController()
+  floatingAiController.value = controller
+  floatingAiLoading.value = true
+  floatingAiError.value = ''
+  floatingAiResponse.value = ''
+  floatingAiEvents.value = []
+  const documentId = props.documentId || 'current-document'
+  try {
+    const result = await runMicroAgent({
+      instruction,
+      signal: controller.signal,
+      complete: props.ai.complete,
+      onEvent: (event) => floatingAiEvents.value.push(event.text),
+      host: {
+        current: () => {
+          const currentEditor = editor.value
+          if (!currentEditor) return null
+          return {
+            id: documentId,
+            title: props.ariaLabel,
+            revision: editorRevision.value,
+            content: currentEditor.getJSON() as TiptapDocumentJson,
+          }
+        },
+        write: async (id, expectedRevision, content, signal) => {
+          signal.throwIfAborted()
+          const currentEditor = editor.value
+          if (!currentEditor || id !== documentId || expectedRevision !== editorRevision.value) {
+            throw new Error('编辑器内容已变化，请重新发起任务。')
+          }
+          currentEditor.commands.setContent(content, { emitUpdate: true, errorOnInvalidContent: true })
+          return '已写入当前文档'
+        },
+      },
+    })
+    floatingAiResponse.value = result.text
+  } catch (error) {
+    if (!controller.signal.aborted) floatingAiError.value = error instanceof Error ? error.message : 'AI 助手执行失败。'
+  } finally {
+    if (floatingAiController.value === controller) {
+      floatingAiController.value = null
+      floatingAiLoading.value = false
+    }
+  }
+}
+
+watch([blockAiOpen, contextBlockPosition], () => void updateBlockAiPosition())
 
 function handleEditorClick(event: InstanceType<typeof globalThis.MouseEvent>): void {
   const target = event.target
@@ -508,6 +683,8 @@ useEditorDocumentSync(editor, {
 })
 
 onBeforeUnmount(() => {
+  blockAiController.value?.abort()
+  floatingAiController.value?.abort()
   pluginLifecycle.dispose()
   editor.value?.destroy()
   emit('destroy')
@@ -528,6 +705,7 @@ defineExpose({
   insertAttachment,
   insertMarkdown,
   replaceBlocksWithMarkdown: blockSelection.replaceBlocksWithMarkdown,
+  streamMarkdown: blockSelection.streamMarkdown,
   revealBlock,
   insertInternalDocumentLink,
   copyContextBlock,
@@ -535,6 +713,8 @@ defineExpose({
   setContextBlockPosition: (position: number) => {
     contextBlockPosition.value = position
   },
+  openBlockAiEditor,
+  openFloatingAi,
 })
 </script>
 
@@ -551,6 +731,7 @@ defineExpose({
         :style="editorAppearanceStyle"
         @click="handleEditorClick"
         @contextmenu="captureContextBlock"
+        @scroll="updateBlockAiPosition"
       >
         <input
           ref="imageFileInput"
@@ -648,6 +829,28 @@ defineExpose({
           </button>
         </nav>
         <EditorContent :editor="editor" />
+        <EditorBlockAiEditor
+          :open="blockAiOpen"
+          :loading="blockAiLoading"
+          :error="blockAiError"
+          :preview="blockAiPreview"
+          :style="{ top: `${blockAiPosition.top}px`, left: `${blockAiPosition.left}px` }"
+          @update:open="(value) => (value ? (blockAiOpen = true) : closeBlockAiEditor())"
+          @submit="submitBlockAi"
+          @accept="acceptBlockAi"
+          @reject="rejectBlockAi"
+        />
+        <EditorFloatingAi
+          v-if="!readonly"
+          :open="floatingAiOpen"
+          :loading="floatingAiLoading"
+          :error="floatingAiError"
+          :response="floatingAiResponse"
+          :events="floatingAiEvents"
+          @update:open="(value) => (value ? openFloatingAi() : closeFloatingAi())"
+          @submit="submitFloatingAi"
+          @cancel="closeFloatingAi"
+        />
       </div>
     </template>
 
@@ -668,6 +871,14 @@ defineExpose({
           <Redo2 :size="15" /><span>重做</span><kbd>Ctrl Y</kbd>
         </ContextMenuItem>
         <ContextMenuSeparator class="editor-context-menu__separator" />
+
+        <ContextMenuItem
+          class="editor-context-menu__item"
+          :disabled="readonly || !getContextBlockSnapshot()"
+          @select="openBlockAiEditor"
+        >
+          <Sparkles :size="15" /><span>块内 AI 编辑</span><kbd>↵</kbd>
+        </ContextMenuItem>
 
         <ContextMenuSub>
           <ContextMenuSubTrigger class="editor-context-menu__item editor-context-menu__item--sub">

@@ -2,6 +2,7 @@ node_modules/
 dist/
 coverage/
 docs-dist/
+src-tauri/target/
 *.tgz
 *.log
 vite.config.d.ts

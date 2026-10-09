@@ -14,9 +14,10 @@ const props = withDefaults(
     collapsedDocumentIds: Set<DocumentId>
     draggedArticleId: DocumentId | null
     busy: boolean
+    readonly?: boolean
     depth?: number
   }>(),
-  { depth: 0 },
+  { depth: 0, readonly: false },
 )
 
 const emit = defineEmits<{
@@ -40,6 +41,7 @@ const emit = defineEmits<{
     :collapsed-document-ids="props.collapsedDocumentIds"
     :dragged-article-id="props.draggedArticleId"
     :busy="props.busy"
+    :readonly="props.readonly"
     :depth="props.depth"
     @select="emit('select', $event)"
     @toggle="emit('toggle', $event)"

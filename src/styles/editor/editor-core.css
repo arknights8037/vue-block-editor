@@ -213,6 +213,7 @@
 .editor-shell__content .editor-block {
   position: relative;
   z-index: 0;
+  isolation: isolate;
   padding-left: var(--editor-block-control-gutter);
   padding-right: var(--editor-block-hit-padding-right);
   transition:
@@ -294,11 +295,13 @@
   opacity: 1;
 }
 
-.editor-shell__content > .editor-block:hover,
-.editor-shell__content > .editor-block--selected,
-.editor-shell__content > .editor-block--selected:hover {
-  background: transparent;
-  box-shadow: none;
+/* Keep the active block visible above the editor background. The decoration
+ * itself is intentionally non-interactive so it never steals the caret click. */
+.editor-shell__content .editor-block--selected {
+  background: rgb(52 120 212 / 7%);
+  box-shadow:
+    inset 0 0 0 1px rgb(52 120 212 / 24%),
+    0 0 0 2px rgb(52 120 212 / 8%);
 }
 
 .editor-shell__content .editor-block--pressed::after,
@@ -604,6 +607,8 @@
   font-size: 40px;
   font-weight: 800;
   letter-spacing: 0;
+  line-height: 1.15;
+  min-height: 1.15em;
 }
 
 @media (hover: none), (pointer: coarse) {

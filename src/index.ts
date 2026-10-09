@@ -20,6 +20,9 @@ export { default as NativeTableEditor } from './editor/NativeTableEditor.vue'
 export { default as EditorProvider } from './ui/UiProvider.vue'
 export { default as EditorContextMenu } from './editor/EditorContextMenu.vue'
 export { default as EditorBubbleMenu } from './editor/EditorBubbleMenu.vue'
+export { default as EditorBlockAiEditor } from './editor/EditorBlockAiEditor.vue'
+export { default as EditorFloatingAi } from './editor/EditorFloatingAi.vue'
+export type { BlockAiEditRequest, EditorAiOptions } from './editor/aiTypes'
 
 export { createEditorExtensions } from './editor/createEditorExtensions'
 export * from './plugins'
@@ -89,6 +92,21 @@ export {
   type PatchValidationResult,
 } from './models/agent'
 export type { TableField } from './editor/tableFields'
+export type {
+  EditorBlockSnapshot,
+  StreamMarkdownOptions,
+  StreamMarkdownResult,
+} from './editor/composables/useEditorBlockSelection'
+export {
+  MICRO_AGENT_TOOLS,
+  runMicroAgent,
+  type MicroCompletion,
+  type MicroDocument,
+  type MicroEvent,
+  type MicroHost,
+  type MicroMessage,
+  type MicroToolCall,
+} from './agent/microRuntime'
 export {
   applyCoreOperations,
   createDocumentSnapshot,
@@ -100,6 +118,19 @@ export {
 } from './core/documentCore'
 export {
   createAgentToolAdapter,
+  createAgentToolDefinitions,
+  invokeAgentTool,
+  AGENT_OPERATION_TYPES,
+  AGENT_TOOL_DEFINITIONS,
+  AGENT_TOOL_SCHEMA_VERSION,
+  AgentToolError,
   type AgentDocumentToolRequest,
+  type AgentDocumentSaveRequest,
+  type AgentDocumentSaveResult,
+  type AgentCommitResult,
+  type AgentJsonSchema,
+  type AgentToolDefinition,
+  type AgentToolErrorCode,
   type AgentToolAdapter,
+  type AgentToolName,
 } from './agent/toolAdapter'

@@ -108,14 +108,16 @@ const content = normalizeEditorContent(input)
 const stored = serializeEditorContent(content)</code></pre></div><div class="mini-grid"><article><h3>schemaVersion</h3><p>当前文档结构版本。未来版本会被拒绝，避免静默破坏数据。</p></article><article><h3>revision</h3><p>宿主数据库的乐观锁版本。保存时必须 compare-and-swap。</p></article><article><h3>contentJson</h3><p>稳定存储 JSON；plainText 用于搜索索引和 Agent 上下文。</p></article></div></section>
       <section class="section" id="agent" data-title="Agent 工具"><div class="section-kicker">AGENT TOOLS</div><h2>Agent 可以做什么</h2><p class="section-lead">Agent 不需要操作 DOM。它读取带版本的快照，生成结构化操作，预览后由宿主原子保存。</p><div class="code-block"><div class="code-header"><span>agent.ts</span><button class="copy-button" data-copy="createAgentToolAdapter">复制</button></div><pre><code>const tools = createAgentToolAdapter({
   getDocument: (id) =&gt; store.get(id),
+  saveDocument: ({ documentId, expectedRevision, content }) =&gt;
+    store.compareAndSwap(documentId, expectedRevision, content),
 })
 
 const snapshot = tools.read({ documentId: 'doc-1', revision: 8 })
 const hits = tools.search({ documentId: 'doc-1', revision: 8, query: '发布计划' })
-const result = tools.validate({
+const result = tools.commit({
   documentId: 'doc-1', revision: 8,
   operations: [{ type: 'update_attrs', blockId, attrs: { checked: true } }],
-})</code></pre></div><div class="operation-list"><div><b>read</b><span>读取文档版本、块索引和 JSON</span></div><div><b>search</b><span>按块文本和类型搜索</span></div><div><b>validate</b><span>试运行操作，不写入数据库</span></div><div><b>apply</b><span>返回新的 JSON 和变更块 ID</span></div></div></section>
+})</code></pre></div><div class="operation-list"><div><b>read</b><span>读取文档版本、块索引和 JSON</span></div><div><b>search</b><span>按块文本和类型搜索</span></div><div><b>validate / apply</b><span>预览操作，不写入数据库</span></div><div><b>commit</b><span>通过宿主 CAS 保存并返回新 revision</span></div><div><b>definitions</b><span>生成 MCP / Function Calling 的 inputSchema</span></div></div></section>
       <section class="section" id="assets" data-title="资源与扩展"><div class="section-kicker">EXTENSIONS</div><h2>资源与扩展</h2><div class="mini-grid"><article><h3>AssetService</h3><p>通过 configureAssetService 接入图片和附件的持久化后端。</p></article><article><h3>Feature switches</h3><p>disabledBlocks、hiddenBlocks、disabledRenderers 控制产品功能面。</p></article><article><h3>导入导出</h3><p>支持 Markdown、Notebook JSON、HTML 和稳定 JSON 存储。</p></article></div></section>
       <section class="section" id="limits" data-title="边界与建议"><div class="section-kicker">GUIDANCE</div><h2>接入时要记住的边界</h2><ul class="checklist"><li>组件不负责数据库、权限、路由和模型调用。</li><li>Agent 应使用块 ID，不应依赖数组位置。</li><li>保存 Agent 结果时，必须再次检查 revision 并原子提交。</li><li>大文档应先 search，再按块读取，避免把整篇文档塞进上下文。</li><li>表格当前是文档块，不是完整的数据库视图。</li></ul></section>
       

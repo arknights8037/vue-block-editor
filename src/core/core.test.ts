@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { createAgentToolAdapter } from '@/agent/toolAdapter'
+import {
+  createAgentToolAdapter,
+  createAgentToolDefinitions,
+  invokeAgentTool,
+  AgentToolError,
+} from '@/agent/toolAdapter'
+import { DOCUMENT_SCHEMA_VERSION } from '@/models/document'
 import { applyCoreOperations, createDocumentSnapshot, searchDocumentBlocks } from './documentCore'
 import { normalizeEditorContent } from '@/document/documentContent'
 
@@ -23,8 +29,72 @@ describe('three-layer document core', () => {
   it('provides revision-checked agent tools without importing Vue components', () => {
     const adapter = createAgentToolAdapter({ getDocument: (id) => id === 'doc' ? { revision: 2, content: document } : null })
     expect(adapter.capabilities.operations).toContain('update_attrs')
+    expect(adapter.capabilities.documentSchemaVersion).toBe(DOCUMENT_SCHEMA_VERSION)
+    expect(adapter.capabilities.toolSchemaVersion).toBe(1)
+    expect(adapter.capabilities.schemaVersion).toBe(1)
+    expect(adapter.capabilities.commit).toBe(false)
     expect(adapter.read({ documentId: 'doc', revision: 2 }).documentId).toBe('doc')
-    expect(() => adapter.read({ documentId: 'doc', revision: 1 })).toThrow()
+    expect(() => adapter.read({ documentId: 'doc', revision: 1 })).toThrow(AgentToolError)
+    expect(() => adapter.read({ documentId: 'doc', revision: 1 })).toThrow('文档版本已变化')
+  })
+
+  it('exposes callable tool definitions and a dynamic invocation helper', () => {
+    const adapter = createAgentToolAdapter({ getDocument: () => ({ revision: 2, content: document }) })
+    const definitions = createAgentToolDefinitions()
+    expect(definitions.map((definition) => definition.name)).toEqual(['read', 'search', 'validate', 'apply', 'commit'])
+    const result = invokeAgentTool(adapter, 'search', { documentId: 'doc', revision: 2, query: '知识' })
+    expect(result).toHaveLength(1)
+    expect(() => invokeAgentTool(adapter, 'apply', {
+      documentId: 'doc', revision: 2, operations: [{ type: 'delete_block' }],
+    })).toThrow('操作缺少有效 blockId')
+  })
+
+  it('commits through the host compare-and-swap callback', () => {
+    let savedRevision = 2
+    let savedContent = document
+    const adapter = createAgentToolAdapter({
+      getDocument: () => ({ revision: savedRevision, content: savedContent }),
+      saveDocument: ({ documentId, expectedRevision, content }) => {
+        expect(documentId).toBe('doc')
+        if (expectedRevision !== savedRevision) return null
+        savedRevision += 1
+        savedContent = content
+        return { revision: savedRevision }
+      },
+    })
+    const blockId = createDocumentSnapshot('doc', 2, document).blocks[1].id
+    const result = adapter.commit({
+      documentId: 'doc',
+      revision: 2,
+      operations: [{ type: 'update_attrs', blockId, attrs: { align: 'center' } }],
+    })
+    expect(result).toMatchObject({ ok: true, committed: true, revision: 3 })
+    expect(savedContent.content?.[1].attrs?.align).toBe('center')
+  })
+
+  it('returns a structured commit error when compare-and-swap rejects', () => {
+    const adapter = createAgentToolAdapter({
+      getDocument: () => ({ revision: 2, content: document }),
+      saveDocument: () => null,
+    })
+    const blockId = createDocumentSnapshot('doc', 2, document).blocks[1].id
+    const result = adapter.commit({
+      documentId: 'doc',
+      revision: 2,
+      operations: [{ type: 'update_attrs', blockId, attrs: { align: 'center' } }],
+    })
+    expect(result).toMatchObject({ ok: false, committed: false, errorCode: 'COMMIT_REJECTED' })
+  })
+
+  it('does not pretend to commit when no save callback is configured', () => {
+    const adapter = createAgentToolAdapter({ getDocument: () => ({ revision: 2, content: document }) })
+    const blockId = createDocumentSnapshot('doc', 2, document).blocks[1].id
+    const result = adapter.commit({
+      documentId: 'doc',
+      revision: 2,
+      operations: [{ type: 'update_attrs', blockId, attrs: { align: 'center' } }],
+    })
+    expect(result).toMatchObject({ ok: false, committed: false, errorCode: 'COMMIT_NOT_CONFIGURED' })
   })
 
   it('rejects missing insert anchors and supports nested anchors', () => {

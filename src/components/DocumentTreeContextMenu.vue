@@ -12,7 +12,7 @@ import {
 import type { DocumentSummary } from '@/models/document'
 
 defineOptions({ name: 'DocumentTreeContextMenu' })
-const props = defineProps<{ document: DocumentSummary }>()
+const props = defineProps<{ document: DocumentSummary; readonly?: boolean }>()
 
 const emit = defineEmits<{
   createChild: []
@@ -24,7 +24,7 @@ const emit = defineEmits<{
 
 <template>
   <ContextMenuRoot>
-    <ContextMenuTrigger as-child>
+    <ContextMenuTrigger as-child :disabled="readonly">
       <slot name="trigger" :document="props.document" />
     </ContextMenuTrigger>
     <ContextMenuPortal>

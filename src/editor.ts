@@ -4,6 +4,18 @@ export { default as NativeTableEditor } from './editor/NativeTableEditor.vue'
 export { default as EditorProvider } from './ui/UiProvider.vue'
 export { default as EditorContextMenu } from './editor/EditorContextMenu.vue'
 export { default as EditorBubbleMenu } from './editor/EditorBubbleMenu.vue'
+export { default as EditorBlockAiEditor } from './editor/EditorBlockAiEditor.vue'
+export { default as EditorFloatingAi } from './editor/EditorFloatingAi.vue'
+export type { BlockAiEditRequest, EditorAiOptions } from './editor/aiTypes'
+export { MICRO_AGENT_TOOLS, runMicroAgent } from './agent/microRuntime'
+export type {
+  MicroCompletion,
+  MicroDocument,
+  MicroEvent,
+  MicroHost,
+  MicroMessage,
+  MicroToolCall,
+} from './agent/microRuntime'
 export { default as SlashCommandMenu } from './editor/slash/SlashCommandMenu.vue'
 export { createEditorExtensions } from './editor/createEditorExtensions'
 export * from './plugins'

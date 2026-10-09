@@ -10,6 +10,21 @@ export interface EditorBlockSnapshot extends SelectedBlock {
   json: JSONContent
 }
 
+export interface StreamMarkdownOptions {
+  /** Target blocks. When omitted, the current/selected blocks are used. */
+  blockIds?: string[]
+  /** Minimum time between editor updates. Defaults to 80ms. */
+  intervalMs?: number
+  signal?: AbortSignal
+  onUpdate?: (markdown: string) => void
+}
+
+export interface StreamMarkdownResult {
+  blockIds: string[]
+  markdown: string
+  cancelled: boolean
+}
+
 export function useEditorBlockSelection(editor: Ref<Editor | undefined>) {
   function getCurrentDocumentBlocks(): EditorBlockSnapshot[] {
     const activeEditor = editor.value
@@ -45,5 +60,49 @@ export function useEditorBlockSelection(editor: Ref<Editor | undefined>) {
     return activeEditor.chain().focus().insertContentAt({ from: orderedTargets[0].from, to: orderedTargets[orderedTargets.length - 1].to }, content).run()
   }
 
-  return { getCurrentDocumentBlocks, getSelectedBlocks, replaceBlocksWithMarkdown }
+  async function streamMarkdown(
+    source: AsyncIterable<string> | Iterable<string>,
+    options: StreamMarkdownOptions = {},
+  ): Promise<StreamMarkdownResult> {
+    const targetIds = options.blockIds?.length
+      ? [...options.blockIds]
+      : getSelectedBlocks().map((block) => block.id)
+    if (!targetIds.length) return { blockIds: [], markdown: '', cancelled: false }
+
+    const intervalMs = Math.max(0, options.intervalMs ?? 80)
+    let markdown = ''
+    let lastUpdate = 0
+    let pendingUpdate = false
+
+    const flush = (): boolean => {
+      if (!markdown.trim()) return false
+      const updated = replaceBlocksWithMarkdown(targetIds, markdown)
+      if (updated) {
+        lastUpdate = Date.now()
+        options.onUpdate?.(markdown)
+      }
+      return updated
+    }
+
+    for await (const chunk of source) {
+      if (options.signal?.aborted) {
+        return { blockIds: targetIds, markdown, cancelled: true }
+      }
+      if (typeof chunk !== 'string' || !chunk) continue
+      markdown += chunk
+      if (Date.now() - lastUpdate >= intervalMs) {
+        pendingUpdate = false
+        flush()
+      } else {
+        pendingUpdate = true
+      }
+    }
+
+    // Flush only the throttled tail; avoid creating a duplicate undo step when
+    // the final chunk was already rendered.
+    if (pendingUpdate || (lastUpdate === 0 && markdown.trim())) flush()
+    return { blockIds: targetIds, markdown, cancelled: Boolean(options.signal?.aborted) }
+  }
+
+  return { getCurrentDocumentBlocks, getSelectedBlocks, replaceBlocksWithMarkdown, streamMarkdown }
 }

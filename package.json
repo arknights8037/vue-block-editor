@@ -23,6 +23,11 @@
       "import": "./dist/core.js",
       "require": "./dist/core.cjs"
     },
+    "./kernel": {
+      "types": "./dist/kernel.d.ts",
+      "import": "./dist/kernel.js",
+      "require": "./dist/kernel.cjs"
+    },
     "./renderer": {
       "types": "./dist/renderer.d.ts",
       "import": "./dist/renderer.js",
@@ -38,11 +43,14 @@
     "**/*.css"
   ],
   "scripts": {
-    "build": "vue-tsc --noEmit && vite build && vite build --config vite.core.config.ts && vite build --config vite.subpath.config.ts --mode renderer && vite build --config vite.subpath.config.ts --mode editor",
+    "build": "vue-tsc --noEmit && vite build && vite build --config vite.core.config.ts && vite build --config vite.kernel.config.ts && vite build --config vite.subpath.config.ts --mode renderer && vite build --config vite.subpath.config.ts --mode editor",
     "docs:sync": "node scripts/enrich-docs.mjs",
     "docs:dev": "pnpm docs:sync && vite --config docs/vite.config.ts",
     "docs:build": "pnpm docs:sync && vue-tsc --noEmit --project docs/tsconfig.json && vite build --config docs/vite.config.ts",
     "docs:preview": "vite preview --config docs/vite.config.ts",
+    "kernel:build": "vite build --config vite.kernel.config.ts",
+    "kernel:server": "pnpm kernel:build && node examples/server/server.mjs",
+    "tauri:dev": "pnpm dlx @tauri-apps/cli@latest dev --config src-tauri/tauri.conf.json",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "typecheck": "vue-tsc --noEmit",

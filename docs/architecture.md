@@ -45,3 +45,11 @@ artifacts, while the root entry remains compatible with existing consumers.
 Mermaid and KaTeX are loaded lazily from their node views. This keeps initial interaction code smaller, but the UI build still emits one CSS file and a large UMD fallback. Separate `renderer` and `enhanced-blocks` entries remain future work without changing the document contract.
 
 For performance checks, run `pnpm build` followed by `pnpm bench:document`. The benchmark exercises normalization, snapshot creation, search and a revision-safe update against a configurable number of blocks.
+
+The agent adapter exposes `AGENT_TOOL_DEFINITIONS` / `createAgentToolDefinitions()`
+for MCP `inputSchema` or function-calling wrappers, plus `invokeAgentTool()` for a
+single dispatcher. `apply` and `validate` are pure calculations. Applications that
+provide `saveDocument({ documentId, expectedRevision, content })` also get `commit`,
+which reports success only when the host compare-and-swap returns a newer revision.
+The adapter reports the persisted `documentSchemaVersion` separately from the agent
+`toolSchemaVersion` so protocol changes do not get confused with document migrations.

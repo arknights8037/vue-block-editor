@@ -38,6 +38,18 @@ const content = ref(createEmptyDocumentContent())
 
 `EditorProvider` 提供弹窗、提示、Tooltip 和资源服务上下文。若应用已有自己的 UI 上下文，可以只使用编辑器组件并关闭内置 provider 注册。
 
+## Demo 连接 VibeCodingWiki
+
+运行 `pnpm docs:dev --host 127.0.0.1 --port 5173`，打开 `/demo.html?type=editor`，点击“添加远程”：
+
+- 服务 URL：`http://127.0.0.1:8000/api/v1`，认证选择“无需认证”。
+- Demo 根据 `knowledge-endpoint` 清单发现“知识库”和“课程”，支持切库、分页读取、分类/课程分组、正文读取及已连接端点间的标题搜索。
+- 远程内容只读，不会写回 VibeCodingWiki。搜索框下方提供“编辑端点”和“删除端点”；删除仅移除连接，不删除远程文档。默认本地端点不可删除。
+- 端点名称、地址与上次选择自动保存在当前客户端，重启后恢复；认证凭证和本地编辑内容仅保留在当前会话。需要认证的端点重启后须重新填写凭证。
+- 本地开发模式通过 Vite 专用代理访问 8000 端口，兼容后端未允许 Demo 来源的情况。静态部署和其他远程服务需在后端配置对应的 CORS 来源。
+- 原有 `/documents` 内核服务仍可使用其 API 根地址，例如 `http://127.0.0.1:8787/api`。
+- Tauri 桌面包直接打开编辑器页面，通过原生只读 HTTP 通道访问端点，无需 Vite 代理。桌面版和浏览器分别保存各自的端点设置。
+
 ## 包入口
 
 | 入口 | 内容 | 适用场景 |
@@ -49,6 +61,16 @@ const content = ref(createEmptyDocumentContent())
 | `@my-notebook/vue-block-editor/style.css` | 组件样式 | UI 组件入口配套样式 |
 
 `core`、`renderer` 和 `editor` 均提供 ESM、CommonJS 和 TypeScript 声明。只使用文档处理能力时，不需要加载 Vue 组件或 CSS。
+
+### Kernel 与服务器部署
+
+`@my-notebook/vue-block-editor/kernel` 是不依赖 Vue、DOM 或 CSS 的运行时内核，包含文档规范化、快照、搜索、操作和 `createDocumentKernel` 存储接口。它可以单独安装在 Node.js 服务端，再由 Web UI 或桌面端通过 HTTP 访问。仓库中的最小服务示例可用以下命令启动：
+
+```bash
+pnpm kernel:server
+```
+
+服务默认监听 `0.0.0.0:8787`，提供 `/api/endpoint`、`/api/documents`、`/api/documents/:id` 和 `/api/search?q=` 端点。生产环境可以替换示例内存存储，将 `DocumentKernel` 接到数据库或远程同步服务。
 
 ## 文档数据契约
 
@@ -254,6 +276,40 @@ When an application has multiple editor instances or request-scoped asset backen
 
 `BlockEditor` emits `update:modelValue`, `textUpdate`, `ready`, `destroy`, `imageError` and `openDocument`. It also exposes `getJSON()`, `getText()`, `getSelectedBlocks()`, `focus()`, `undo()`, `redo()`, `insertMarkdown()` and block insertion helpers through the component ref.
 
+For a blank or single-block AI writing surface, `streamMarkdown()` accepts an
+`AsyncIterable<string>` and incrementally renders the generated Markdown into
+the current block. It throttles editor updates (80 ms by default) and returns
+the accumulated result when the stream ends:
+
+```ts
+const result = await editorRef.value?.streamMarkdown(streamAI({ prompt }))
+```
+
+Pass `blockIds` to target a specific block, `intervalMs` to change the refresh
+interval, `signal` to cancel, or `onUpdate` to observe the accumulated text.
+
+`BlockEditor` also includes two AI surfaces when it is editable: choose
+“块内 AI 编辑” from a block's context menu to rewrite one block, or open the
+floating “AI” assistant to let a model read and write the current document
+through the bounded `read` / `write` tools. Pass an OpenAI-compatible completion
+function through `ai.complete`; a dedicated `ai.blockEdit` hook can return the
+Markdown replacement for the block editor directly:
+
+```ts
+const ai = {
+  complete: createModelCompletion(modelConfig),
+  blockEdit: async ({ block, instruction }) =>
+    rewriteWithYourModel(block.text, instruction),
+}
+```
+
+The block editor shows returned Markdown as a preview first; only “接受修改”
+writes it, while “不接受” discards it. It preserves the target block ID when
+replacing its Markdown. The assistant keeps the document revision it read and
+rejects writes after the editor changes. `EditorBlockAiEditor`, `EditorFloatingAi`, `EditorAiOptions`,
+`runMicroAgent` and `MICRO_AGENT_TOOLS` are exported for hosts that want to
+compose the surfaces separately.
+
 ### Feature and renderer switches
 
 Pass the same `features` object to `BlockEditor` and `BlockRenderer` when the host application needs a smaller feature surface:
@@ -332,3 +388,41 @@ The package exposes three cooperating layers:
 Agent integrations should read with a revision, validate the operation batch, show
 the resulting change to the user when approval is required, and persist the returned
 JSON with a compare-and-swap on that same revision.
+
+## Agent tool calling
+
+The `core` entry exposes tool definitions and a dispatcher for MCP or function-calling
+hosts. `apply` remains a pure preview operation; `commit` is available when the host
+provides an atomic `saveDocument` callback:
+
+```ts
+import {
+  createAgentToolAdapter,
+  createAgentToolDefinitions,
+  invokeAgentTool,
+} from '@my-notebook/vue-block-editor/core'
+
+const tools = createAgentToolAdapter({
+  getDocument: (documentId) => store.get(documentId),
+  saveDocument: ({ documentId, expectedRevision, content }) =>
+    store.compareAndSwap(documentId, expectedRevision, content),
+})
+
+// Pass this to the host SDK as its inputSchema / parameters definition.
+const definitions = createAgentToolDefinitions()
+const result = invokeAgentTool(tools, 'commit', {
+  documentId: 'doc-1',
+  revision: 8,
+  operations: [{
+    type: 'update_attrs',
+    blockId: 'block-1',
+    attrs: { checked: true },
+  }],
+})
+```
+
+`commit` passes `expectedRevision` to the host and only reports `committed: true`
+when the callback returns a strictly newer revision. A missing or rejected callback
+produces a structured `errorCode`; it never silently reports a successful write.
+`AgentToolError.code` distinguishes missing documents from stale revisions during
+`read`, `search`, `validate` and `apply`.
